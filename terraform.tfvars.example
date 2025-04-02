@@ -1,0 +1,25 @@
+# OCI Authentication
+tenancy_ocid     = "ocid1.tenancy.oc1..example"
+user_ocid        = "ocid1.user.oc1..example"
+private_key_path = "~/.oci/oci_api_key.pem"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+region           = "eu-frankfurt-1"
+
+# Compartment
+compartment_id   = "ocid1.compartment.oc1..example"
+
+# Cluster Configuration
+cluster_name     = "k8s-cluster"
+node_count       = 1  # Set to 1 for single-node or 2-4 for multi-node
+node_shape       = "VM.Standard.A1.Flex"
+node_ocpus       = 1
+node_memory_in_gbs = 6
+
+# Network Configuration
+vcn_cidr         = "10.0.0.0/16"
+subnet_cidr      = "10.0.1.0/24"
+your_ip          = "YOUR_IP_ADDRESS/32"  # Your IP address with CIDR notation
+
+# SSH Configuration
+ssh_public_key   = "~/.ssh/id_rsa.pub"
+ssh_private_key  = "~/.ssh/id_rsa" 

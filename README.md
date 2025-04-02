@@ -1,4 +1,4 @@
-# Automated Kubernetes Cluster Deployment on Oracle Cloud with ARM
+# Automated Kubernetes Cluster Deployment
 
 This project enables automatic creation and configuration of a Kubernetes cluster on Oracle Cloud Infrastructure (OCI) using ARM processors. The entire infrastructure is managed as code using Terraform, and application deployment follows the GitOps methodology.
 
