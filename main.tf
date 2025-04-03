@@ -105,112 +105,50 @@ resource "oci_core_security_list" "k8s_security_list" {
   }
 }
 
-# Load Balancer for multi-node setup
-resource "oci_network_load_balancer" "k8s_nlb" {
-  count = var.node_count > 1 ? 1 : 0
-  
-  compartment_id = var.compartment_id
-  display_name   = "${var.cluster_name}-nlb"
-  subnet_id      = oci_core_subnet.k8s_subnet.id
+# OKE Cluster
+resource "oci_containerengine_cluster" "k8s_cluster" {
+  compartment_id     = var.compartment_id
+  kubernetes_version = var.kubernetes_version
+  name               = var.cluster_name
+  vcn_id             = oci_core_vcn.k8s_vcn.id
 
-  is_private = false
+  options {
+    service_lb_subnet_ids = [oci_core_subnet.k8s_subnet.id]
+    
+    add_ons {
+      is_kubernetes_dashboard_enabled = false
+      is_tiller_enabled              = false
+    }
+  }
 }
 
-resource "oci_network_load_balancer_backend_set" "k8s_nlb_backend_set" {
-  count = var.node_count > 1 ? 1 : 0
-  
-  name                     = "${var.cluster_name}-backend-set"
-  network_load_balancer_id = oci_network_load_balancer.k8s_nlb[0].id
-  port                     = 6443
-  policy                   = "FIVE_TUPLE"
-}
+# Node Pool
+resource "oci_containerengine_node_pool" "k8s_node_pool" {
+  cluster_id         = oci_containerengine_cluster.k8s_cluster.id
+  compartment_id     = var.compartment_id
+  kubernetes_version = var.kubernetes_version
+  name               = "${var.cluster_name}-node-pool"
+  node_shape         = var.node_shape
 
-# Compute Instances
-resource "oci_core_instance" "k8s_nodes" {
-  count               = var.node_count
-  availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
-  compartment_id      = var.compartment_id
-  display_name        = "${var.cluster_name}-node-${count.index + 1}"
-  shape               = var.node_shape
+  node_config_details {
+    placement_configs {
+      availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
+      subnet_id          = oci_core_subnet.k8s_subnet.id
+    }
+    size = var.node_count
+  }
 
-  shape_config {
-    ocpus         = var.node_ocpus
+  node_shape_config {
     memory_in_gbs = var.node_memory_in_gbs
+    ocpus         = var.node_ocpus
   }
 
-  create_vnic_details {
-    subnet_id        = oci_core_subnet.k8s_subnet.id
-    security_list_ids = [oci_core_security_list.k8s_security_list.id]
+  node_source_details {
+    image_id    = data.oci_core_images.arm_images.images[0].id
+    source_type = "IMAGE"
   }
 
-  source_details {
-    source_type = "image"
-    source_id   = data.oci_core_images.arm_images.images[0].id
-  }
-
-  metadata = {
-    ssh_authorized_keys = file(var.ssh_public_key)
-  }
-
-  # Install MicroK8s and configure the node
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      host        = self.public_ip
-      user        = "ubuntu"
-      private_key = file(var.ssh_private_key)
-    }
-
-    inline = [
-      "sudo apt-get update",
-      "sudo apt-get install -y snapd",
-      "sudo snap install microk8s --classic --channel=1.28/stable",
-      "sudo usermod -a -G microk8s ubuntu",
-      "sudo chown -R ubuntu:ubuntu ~/.kube",
-      "mkdir -p ~/.kube",
-      "sudo microk8s config > ~/.kube/config",
-      "sudo chown -R ubuntu:ubuntu ~/.kube/config"
-    ]
-  }
-
-  # Additional configuration for the first node (control plane)
-  provisioner "remote-exec" {
-    count = count.index == 0 ? 1 : 0
-    
-    connection {
-      type        = "ssh"
-      host        = self.public_ip
-      user        = "ubuntu"
-      private_key = file(var.ssh_private_key)
-    }
-
-    inline = [
-      "sudo microk8s enable dns hostpath-storage ingress metrics-server",
-      "sudo microk8s status --wait-ready"
-    ]
-  }
-
-  # Join additional nodes to the cluster
-  provisioner "remote-exec" {
-    count = count.index > 0 ? 1 : 0
-    
-    connection {
-      type        = "ssh"
-      host        = self.public_ip
-      user        = "ubuntu"
-      private_key = file(var.ssh_private_key)
-    }
-
-    inline = [
-      "sudo microk8s join ${oci_core_instance.k8s_nodes[0].private_ip}:25000/${random_string.cluster_token.result}"
-    ]
-  }
-}
-
-# Generate a random token for cluster joining
-resource "random_string" "cluster_token" {
-  length  = 32
-  special = false
+  ssh_public_key = file(var.ssh_public_key)
 }
 
 # Data sources
@@ -220,8 +158,8 @@ data "oci_identity_availability_domains" "ads" {
 
 data "oci_core_images" "arm_images" {
   compartment_id           = var.compartment_id
-  operating_system         = "Canonical Ubuntu"
-  operating_system_version = "22.04"
+  operating_system         = "Oracle Linux"
+  operating_system_version = "8"
   architecture            = "ARM"
   sort_by                 = "TIMECREATED"
   sort_order              = "DESC"

@@ -35,13 +35,19 @@ variable "cluster_name" {
   default     = "k8s-cluster"
 }
 
+variable "kubernetes_version" {
+  description = "The version of Kubernetes to use"
+  type        = string
+  default     = "v1.28.2"
+}
+
 variable "node_count" {
-  description = "Number of nodes in the cluster (1-4)"
+  description = "Number of nodes in the cluster (1-2 for Always Free tier)"
   type        = number
   default     = 1
   validation {
-    condition     = var.node_count >= 1 && var.node_count <= 4
-    error_message = "Node count must be between 1 and 4."
+    condition     = var.node_count >= 1 && var.node_count <= 2
+    error_message = "Node count must be between 1 and 2 for Always Free tier."
   }
 }
 
@@ -52,15 +58,23 @@ variable "node_shape" {
 }
 
 variable "node_ocpus" {
-  description = "Number of OCPUs for each node"
+  description = "Number of OCPUs for each node (1-4 for Always Free tier)"
   type        = number
   default     = 1
+  validation {
+    condition     = var.node_ocpus >= 1 && var.node_ocpus <= 4
+    error_message = "OCPUs must be between 1 and 4 for Always Free tier."
+  }
 }
 
 variable "node_memory_in_gbs" {
-  description = "Amount of memory in GBs for each node"
+  description = "Amount of memory in GBs for each node (6-24 for Always Free tier)"
   type        = number
   default     = 6
+  validation {
+    condition     = var.node_memory_in_gbs >= 6 && var.node_memory_in_gbs <= 24
+    error_message = "Memory must be between 6 and 24 GB for Always Free tier."
+  }
 }
 
 variable "vcn_cidr" {

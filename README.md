@@ -1,31 +1,39 @@
-# Automated Kubernetes Cluster Deployment on Oracle Cloud Infrastructure
+# Free Kubernetes Cluster on Oracle Cloud Infrastructure
 
-This project enables automatic creation and configuration of a Kubernetes cluster on Oracle Cloud Infrastructure (OCI) using ARM processors. The entire infrastructure is managed as code using Terraform, and the cluster is set up using MicroK8s.
+This project enables automatic creation and configuration of a Kubernetes cluster on Oracle Cloud Infrastructure (OCI) using ARM processors within the Always Free tier. The entire infrastructure is managed as code using Terraform, and the cluster is deployed using Oracle Container Engine for Kubernetes (OKE).
+
+## Always Free Tier Limitations
+
+The configuration is optimized for Oracle's Always Free tier, which includes:
+- Up to 2 VM.Standard.A1.Flex instances
+- Each instance can have:
+  - 1-4 OCPUs
+  - 6-24 GB of memory
+- Free block storage
+- Free VCN and networking resources
+- Free load balancer
 
 ## Project Overview
 
 The project consists of the following components:
 - **Terraform** - for automatic deployment and configuration of infrastructure in Oracle Cloud
-- **Kubernetes** - cluster on ARM architecture using MicroK8s
-- **Network Load Balancer** - for multi-node cluster setups
-- **Security Configuration** - properly configured security lists for cluster communication
+- **OKE (Oracle Container Engine for Kubernetes)** - managed Kubernetes service
+- **Network Configuration** - properly configured VCN and security lists
+- **Node Pools** - ARM-based worker nodes within Always Free tier limits
 
 ## Features
 
-- Deploy a single-node or multi-node Kubernetes cluster (up to 4 nodes)
-- Use Oracle Cloud's Always Free tier resources (ARM-based VM.Standard.A1.Flex instances)
-- Automatic installation and configuration of MicroK8s
+- Deploy a managed Kubernetes cluster using OKE within Always Free tier
+- Use ARM-based VM.Standard.A1.Flex instances
+- Automatic cluster configuration and management
 - Pre-configured security rules for cluster communication
-- Network Load Balancer for multi-node setups
-- Automatic installation of essential add-ons:
-  - DNS
-  - hostpath-storage
-  - ingress
-  - metrics-server
+- Built-in load balancing for services
+- Automatic updates and maintenance
+- Integrated monitoring and logging
 
 ## Prerequisites
 
-- Oracle Cloud account with access to services
+- Oracle Cloud account with access to Always Free tier services
 - Terraform (version >= 1.0.0)
 - OCI CLI configured with appropriate permissions
 - kubectl
@@ -39,6 +47,7 @@ The project consists of the following components:
 - API key with fingerprint
 - Compartment OCID
 - Region access
+- Sufficient Always Free tier limits
 
 ## Installation
 
@@ -67,10 +76,11 @@ The project consists of the following components:
 
    # Cluster Configuration
    cluster_name     = "k8s-cluster"
-   node_count       = 1  # Set to 1 for single-node or 2-4 for multi-node
+   kubernetes_version = "v1.28.2"
+   node_count       = 1  # Set to 1 or 2 for Always Free tier
    node_shape       = "VM.Standard.A1.Flex"
-   node_ocpus       = 1
-   node_memory_in_gbs = 6
+   node_ocpus       = 1  # 1-4 OCPUs per node
+   node_memory_in_gbs = 6  # 6-24 GB per node
 
    # Network Configuration
    vcn_cidr         = "10.0.0.0/16"
@@ -79,7 +89,6 @@ The project consists of the following components:
 
    # SSH Configuration
    ssh_public_key   = "~/.ssh/id_rsa.pub"
-   ssh_private_key  = "~/.ssh/id_rsa"
    ```
 
 4. Initialize Terraform:
@@ -104,19 +113,15 @@ The project consists of the following components:
 
 ## Cluster Configuration
 
-### Single-Node Cluster
-- 1 VM with 1 CPU and 6GB RAM
-- Suitable for development and testing
-- All components run on a single node
+### Node Configuration
+- ARM-based instances (VM.Standard.A1.Flex)
+- Configurable number of nodes (1-2 for Always Free tier)
+- Each node with:
+  - 1-4 OCPUs
+  - 6-24 GB memory
+- Oracle Linux 8 as the base image
 
-### Multi-Node Cluster
-- Up to 4 VMs, each with 1 CPU and 6GB RAM
-- First node acts as the control plane
-- Additional nodes join as workers
-- Network Load Balancer for API server access
-
-## Network Configuration
-
+### Network Configuration
 The infrastructure includes:
 - VCN with a public subnet
 - Internet Gateway for external access
@@ -127,24 +132,26 @@ The infrastructure includes:
   - kubelet communication (port 10250) between nodes
   - HTTP (port 80) and HTTPS (port 443) for applications
 
-## MicroK8s Configuration
+## OKE Features
 
 The cluster is configured with:
-- MicroK8s version 1.28 (stable channel)
-- Essential add-ons enabled:
-  - DNS
-  - hostpath-storage
-  - ingress
-  - metrics-server
+- Managed control plane
+- Automatic updates
+- Built-in monitoring
+- Integrated logging
+- Service load balancing
+- Metrics server
 
 ## Outputs
 
 After applying the Terraform configuration, you'll get:
-- Control plane node public and private IP addresses
-- Worker node public IP addresses (for multi-node setup)
-- Load balancer IP address (for multi-node setup)
+- Cluster ID
+- Cluster endpoint
+- Node pool ID
 - Command to configure kubectl
-- Cluster join token (for adding nodes manually)
+- Cluster name
+- Node count and configuration
+- Resource allocation details
 
 ## ARM Considerations
 
@@ -159,7 +166,9 @@ terraform destroy
 
 ## Troubleshooting
 
-- If nodes fail to join the cluster, check the security lists and ensure the join token is correct
-- For MicroK8s issues, check the logs with `sudo microk8s logs`
-- Verify network connectivity between nodes using `ping` or `telnet`
+- If cluster creation fails, check your Always Free tier limits
+- For node pool issues, verify the subnet and security list configurations
+- Check OCI Console for detailed error messages
+- Ensure your IP address is correctly specified in the security rules
+- Monitor your Always Free tier usage in the OCI Console
 
