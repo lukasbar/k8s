@@ -2,6 +2,16 @@
 
 This project enables automatic creation and configuration of a Kubernetes cluster on Oracle Cloud Infrastructure (OCI) using ARM processors within the Always Free tier. The entire infrastructure is managed as code using Terraform, and the cluster is deployed using Oracle Container Engine for Kubernetes (OKE).
 
+## State Management
+
+The Terraform state is stored in OCI Object Storage, which provides:
+- Secure storage of state files
+- Versioning of state files
+- Concurrent access for team collaboration
+- Backup and recovery capabilities
+
+The state bucket is automatically created during the first run of Terraform.
+
 ## Always Free Tier Limitations
 
 The configuration is optimized for Oracle's Always Free tier, which includes:
@@ -12,6 +22,7 @@ The configuration is optimized for Oracle's Always Free tier, which includes:
 - Free block storage
 - Free VCN and networking resources
 - Free load balancer
+- Free Object Storage (for Terraform state)
 
 ## Project Overview
 
@@ -91,7 +102,7 @@ The project consists of the following components:
    ssh_public_key   = "~/.ssh/id_rsa.pub"
    ```
 
-4. Initialize Terraform:
+4. Initialize Terraform (this will create the state bucket):
    ```bash
    terraform init
    ```
